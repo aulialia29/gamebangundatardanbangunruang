@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎀 Game Gambar Bangun Kiyowo 🎀</title>
+<style>
+  body {
+    font-family: "Comic Sans MS", cursive;
+    background: linear-gradient(180deg, #fff7fb, #ffe4f2);
+    margin: 0;
+    padding: 0;
+  }
+  h1 {
+    color: #ff77b5;
+    text-align: center;
+    margin-top: 15px;
+  }
+  button {
+    background-color: #ffd9ec;
+    border: none;
+    border-radius: 15px;
+    padding: 10px 20px;
+    margin: 5px;
+    font-size: 15px;
+    cursor: pointer;
+    box-shadow: 0 3px #ffbcd9;
+    transition: 0.2s;
+  }
+  button:hover {
+    transform: scale(1.05);
+  }
+  #scoreboard {
+    background: #fff0f7;
+    border-radius: 15px;
+    display: inline-block;
+    padding: 10px 15px;
+    margin: 10px auto;
+    box-shadow: 0 3px 6px rgba(255,182,193,0.4);
+  }
+  #main-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 20px;
+    margin-top: 15px;
+  }
+  #result-box {
+    background: #fff0f8;
+    border-radius: 20px;
+    padding: 15px;
+    width: 200px;
+    height: 420px;
+    text-align: center;
+    box-shadow: 0 3px 6px rgba(255,192,203,0.3);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  #result {
+    font-size: 22px;
+    font-weight: bold;
+    margin-top: 10px;
+    color: #ff66aa;
+  }
+  #canvas-container {
+    position: relative;
+    width: 400px;
+    height: 400px;
+  }
+  canvas {
+    border-radius: 20px;
+    cursor: crosshair;
+  }
+  #grid {
+    border: 3px dashed #ffcfe2;
+    background: white;
+    position: absolute;
+    z-index: 0;
+  }
+  #templateCanvas {
+    position: absolute;
+    z-index: 1;
+    opacity: 0.25;
+  }
+  #drawCanvas {
+    position: absolute;
+    z-index: 2;
+  }
+</style>
+</head>
+<body>
+
+<h1>🎨 Game Gambar Bangun Datar & Ruang Kiyowo 🎀</h1>
+
+<div style="text-align:center;">
+  <div id="scoreboard">
+    Skor: <span id="score">0</span> 💖 | Tantangan: <span id="challenge">-</span>
+  </div>
+  <div>
+    <button id="modeDatar">Bangun Datar</button>
+    <button id="modeRuang">Bangun Ruang</button>
+    <button id="random">🎲 Tantangan Acak</button>
+    <button id="clear">🧼 Bersihkan</button>
+    <button id="done">✅ Selesai</button>
+  </div>
+</div>
+
+<div id="main-container">
+  <div id="result-box">
+    <h3>💬 Hasil</h3>
+    <div id="result">Belum menggambar</div>
+  </div>
+
+  <div id="canvas-container">
+    <canvas id="grid" width="400" height="400"></canvas>
+    <canvas id="templateCanvas" width="400" height="400"></canvas>
+    <canvas id="drawCanvas" width="400" height="400"></canvas>
+  </div>
+</div>
+
+<script>
+const gridCanvas = document.getElementById("grid");
+const templateCanvas = document.getElementById("templateCanvas");
+const drawCanvas = document.getElementById("drawCanvas");
+const gctx = gridCanvas.getContext("2d");
+const tctx = templateCanvas.getContext("2d");
+const dctx = drawCanvas.getContext("2d");
+
+let drawing = false;
+let points = [];
+let score = 0;
+let currentMode = "datar";
+let challenge = "";
+
+const bangunDatar = ["Segitiga", "Persegi", "Persegi Panjang", "Lingkaran"];
+const bangunRuang = ["Kubus", "Balok", "Bola", "Kerucut"];
+const resultText = document.getElementById("result");
+const challengeText = document.getElementById("challenge");
+const scoreText = document.getElementById("score");
+
+// Gambar grid
+function drawGrid() {
+  gctx.fillStyle = "#fff";
+  gctx.fillRect(0, 0, 400, 400);
+  gctx.strokeStyle = "#ffe0ea";
+  for (let x = 0; x <= 400; x += 25) {
+    gctx.beginPath();
+    gctx.moveTo(x, 0);
+    gctx.lineTo(x, 400);
+    gctx.stroke();
+  }
+  for (let y = 0; y <= 400; y += 25) {
+    gctx.beginPath();
+    gctx.moveTo(0, y);
+    gctx.lineTo(400, y);
+    gctx.stroke();
+  }
+}
+drawGrid();
+
+// Template bentuk
+function drawTemplate(shape) {
+  tctx.clearRect(0, 0, 400, 400);
+  tctx.strokeStyle = "#ff9fcf";
+  tctx.lineWidth = 3;
+  tctx.beginPath();
+
+  if (shape === "Segitiga") {
+    tctx.moveTo(200, 80);
+    tctx.lineTo(100, 300);
+    tctx.lineTo(300, 300);
+    tctx.closePath();
+  } else if (shape === "Persegi") {
+    tctx.rect(120, 120, 160, 160);
+  } else if (shape === "Persegi Panjang") {
+    tctx.rect(80, 150, 240, 100);
+  } else if (shape === "Lingkaran") {
+    tctx.arc(200, 200, 80, 0, Math.PI * 2);
+  } else if (shape === "Kubus") {
+    tctx.rect(120, 150, 160, 160);
+    tctx.moveTo(120,150); tctx.lineTo(170,100);
+    tctx.lineTo(330,100); tctx.lineTo(280,150);
+    tctx.moveTo(280,310); tctx.lineTo(330,260); tctx.lineTo(330,100);
+  } else if (shape === "Balok") {
+    tctx.rect(100,170,200,120);
+    tctx.moveTo(100,170); tctx.lineTo(150,120);
+    tctx.lineTo(350,120); tctx.lineTo(300,170);
+    tctx.moveTo(300,290); tctx.lineTo(350,240); tctx.lineTo(350,120);
+  } else if (shape === "Bola") {
+    tctx.arc(200, 200, 90, 0, Math.PI * 2);
+  } else if (shape === "Kerucut") {
+    tctx.moveTo(200, 80);
+    tctx.lineTo(100, 300);
+    tctx.lineTo(300, 300);
+    tctx.closePath();
+    tctx.moveTo(100,300);
+    tctx.quadraticCurveTo(200,340,300,300);
+  }
+
+  tctx.stroke();
+}
+
+// Menggambar manual
+function startDraw(e) {
+  drawing = true;
+  points = [];
+  dctx.beginPath();
+  dctx.moveTo(getX(e), getY(e));
+}
+function draw(e) {
+  if (!drawing) return;
+  const x = getX(e);
+  const y = getY(e);
+  points.push({x,y});
+  dctx.lineWidth = 3;
+  dctx.lineCap = "round";
+  dctx.strokeStyle = "#ff8ecb";
+  dctx.lineTo(x, y);
+  dctx.stroke();
+}
+function endDraw() {
+  drawing = false;
+  dctx.closePath();
+}
+function getX(e){return e.touches?e.touches[0].clientX - drawCanvas.getBoundingClientRect().left:e.offsetX;}
+function getY(e){return e.touches?e.touches[0].clientY - drawCanvas.getBoundingClientRect().top:e.offsetY;}
+
+drawCanvas.addEventListener("mousedown", startDraw);
+drawCanvas.addEventListener("mousemove", draw);
+drawCanvas.addEventListener("mouseup", endDraw);
+drawCanvas.addEventListener("touchstart", startDraw);
+drawCanvas.addEventListener("touchmove", draw);
+drawCanvas.addEventListener("touchend", endDraw);
+
+// Tombol
+document.getElementById("clear").onclick = () => {
+  dctx.clearRect(0,0,400,400);
+  resultText.textContent = "Sudah dibersihkan, ayo gambar lagi 🎨";
+};
+document.getElementById("modeDatar").onclick = () => {
+  currentMode = "datar";
+  resultText.textContent = "Mode: Bangun Datar 💗";
+};
+document.getElementById("modeRuang").onclick = () => {
+  currentMode = "ruang";
+  resultText.textContent = "Mode: Bangun Ruang 💜";
+};
+document.getElementById("random").onclick = () => {
+  const pool = currentMode === "datar" ? bangunDatar : bangunRuang;
+  challenge = pool[Math.floor(Math.random() * pool.length)];
+  challengeText.textContent = challenge;
+  drawTemplate(challenge);
+  dctx.clearRect(0,0,400,400);
+  resultText.textContent = "Gambarlah " + challenge + " ya 🎀";
+};
+
+// Penilaian longgar dan lembut
+document.getElementById("done").onclick = () => {
+  if (!challenge) {
+    resultText.textContent = "Pilih tantangan dulu 🎲";
+    return;
+  }
+  const correct = checkLooseSimilarity();
+  if (correct) {
+    resultText.textContent = "✅ Benar! Kamu pintar banget menggambar " + challenge + "!";
+    score++;
+    scoreText.textContent = score;
+  } else {
+    resultText.textContent = "❌ Salah, coba lagi yuk!";
+  }
+};
+
+// Penilaian toleran (berdasarkan bentuk & luas gambar)
+function checkLooseSimilarity() {
+  const totalPoints = points.length;
+  if (totalPoints < 20) return false; // terlalu sedikit goresan
+
+  // hitung area kasar gambar anak
+  let minX = 999, maxX = 0, minY = 999, maxY = 0;
+  points.forEach(p => {
+    if (p.x < minX) minX = p.x;
+    if (p.x > maxX) maxX = p.x;
+    if (p.y < minY) minY = p.y;
+    if (p.y > maxY) maxY = p.y;
+  });
+  const width = maxX - minX;
+  const height = maxY - minY;
+
+  // toleransi berdasarkan tantangan
+  if (challenge === "Segitiga" && height > 100 && width > 80) return true;
+  if (challenge === "Persegi" && Math.abs(width - height) < 60) return true;
+  if (challenge === "Persegi Panjang" && width > height + 50) return true;
+  if (challenge === "Lingkaran" && Math.abs(width - height) < 40 && width > 100) return true;
+  if (challenge === "Kubus" && width > 120 && height > 120) return true;
+  if (challenge === "Balok" && width > 150 && height > 80) return true;
+  if (challenge === "Bola" && Math.abs(width - height) < 50) return true;
+  if (challenge === "Kerucut" && height > width && height > 100) return true;
+
+  return false;
+}
+</script>
+</body>
+</html>
